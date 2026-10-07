@@ -1,58 +1,87 @@
 // ==============================================================================
-// SERVICIO DE INTELIGENCIA ARTIFICIAL (AI SERVICE)
+// SERVICIO DE INTELIGENCIA ARTIFICIAL — Google Gemini (gratuito)
 // ==============================================================================
-// Este módulo utiliza la API de OpenAI para:
-// 1. Interpretar lenguaje natural y convertirlo en acciones estructuradas (JSON).
-// 2. Reconocer si un movimiento es personal o del emprendimiento.
-// 3. Devolver datos limpios para que el backend decida qué registrar.
+// Reemplaza a OpenAI con el modelo gratuito de Google.
+// Gemini 1.5 Flash entiende español perfectamente y devuelve JSON estructurado.
 
-import { openai } from '@/lib/openai/client';
+import { geminiModel } from '@/lib/gemini/client';
 import { AIInterpretation } from '@/types/ai';
 
 export class AIService {
   // ----------------------------------------------------------------------------
-  // Prompt del sistema con instrucciones claras para la IA
+  // Instrucciones que le damos a la IA sobre cómo debe comportarse
   // ----------------------------------------------------------------------------
   private static systemPrompt = `
-Eres el asistente financiero inteligente de Javier. Tu trabajo es interpretar mensajes de finanzas enviados por WhatsApp.
-IMPORTANTE:
-- Existen dos bolsillos/cuentas: "personal" y "emprendimiento".
-- Las compras de insumos para negocio (ej: filamento, resina, empaques, pintura, impresiones 3D) corresponden a "emprendimiento" como "costo".
-- Las ventas de productos (ej: Funkos, llaveros, impresiones 3D) corresponden a "emprendimiento" como "venta".
-- Los gastos cotidianos (ej: comida, almuerzo, pasajes, ropa, servicios del hogar, gimnasio) corresponden a "personal" como "gasto".
-- Los ingresos personales (ej: sueldo, nómina, regalo) corresponden a "personal" como "ingreso".
-- Si no estás seguro si es personal o del emprendimiento, indica account_type: "desconocido" y pide aclaración amablemente en mensaje_respuesta.
-- Cuando el usuario mencione cifras como "20 mil", "20k", debes interpretarlas como 20000.
-- Devuelve SIEMPRE tu respuesta en formato JSON válido que cumpla con la estructura requerida.
+Eres el asistente financiero personal de Javier. Él te escribe mensajes por WhatsApp 
+sobre sus finanzas y tú debes entender qué quiere hacer y responder SIEMPRE con un JSON válido.
+
+REGLAS IMPORTANTES:
+1. Existen DOS bolsillos/cuentas:
+   - "personal": gastos e ingresos personales (comida, transporte, ropa, servicios del hogar, gimnasio, etc.)
+   - "emprendimiento": ventas y costos del negocio de impresión 3D y Funkos
+
+2. TIPOS de movimiento:
+   - "ingreso": dinero que entra al bolsillo personal (sueldo, regalo, etc.)
+   - "gasto": dinero que sale del bolsillo personal (comida, pasaje, etc.)
+   - "venta": dinero que entra al emprendimiento (venta de Funkos, llaveros, impresiones)
+   - "costo": dinero que sale del emprendimiento (filamento, resina, empaques, materiales)
+
+3. CONVERSIÓN de cantidades:
+   - "20 mil" → 20000
+   - "20k" → 20000
+   - "95 mil" → 95000
+   - "un millón" → 1000000
+
+4. Si NO puedes determinar si es personal o emprendimiento → usa account_type: "desconocido"
+
+5. Responde SIEMPRE con este formato JSON exacto (sin texto adicional fuera del JSON):
+
+{
+  "action": "registrar_movimiento" | "consultar_saldo" | "consultar_resumen" | "consultar_ganancia" | "consultar_movimientos" | "crear_recordatorio" | "corregir_ultimo" | "eliminar_ultimo" | "pedir_aclaracion" | "otro",
+  "movimiento": {
+    "account_type": "personal" | "emprendimiento" | "desconocido",
+    "type": "ingreso" | "gasto" | "venta" | "costo",
+    "amount": 20000,
+    "category": "comida",
+    "description": "almuerzo en restaurante"
+  },
+  "recordatorio": {
+    "title": "Gimnasio",
+    "due_day": 23,
+    "amount": 40000,
+    "account_type": "personal"
+  },
+  "consulta": {
+    "periodo": "hoy" | "semana" | "mes" | "año" | "historico",
+    "account_type": "personal" | "emprendimiento" | "todas",
+    "category": "filamento"
+  },
+  "mensaje_respuesta": "Mensaje amigable para el usuario en español"
+}
+
+NOTA: Solo incluye los campos relevantes según la acción detectada.
 `;
 
   // ----------------------------------------------------------------------------
-  // Interpretar texto recibido del usuario
+  // Interpretar un mensaje de texto del usuario
   // ----------------------------------------------------------------------------
   static async interpretMessage(userText: string): Promise<AIInterpretation> {
     try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Rápido, económico y muy preciso
-        messages: [
-          { role: 'system', content: this.systemPrompt },
-          { role: 'user', content: userText },
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.2, // Respuestas deterministas y exactas
-      });
+      const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
 
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error('Respuesta vacía de OpenAI');
-      }
+      const result = await geminiModel.generateContent(prompt);
+      const responseText = result.response.text();
 
-      const parsed = JSON.parse(content) as AIInterpretation;
+      // Intentamos parsear el JSON que devolvió Gemini
+      const parsed = JSON.parse(responseText) as AIInterpretation;
       return parsed;
+
     } catch (error) {
-      console.error('Error al interpretar mensaje con OpenAI:', error);
+      console.error('Error al interpretar mensaje con Gemini:', error);
+      // En caso de error, devolvemos una respuesta segura
       return {
         action: 'otro',
-        mensaje_respuesta: 'Disculpa, tuve un problema entendiendo tu mensaje. ¿Podrías repetirlo?',
+        mensaje_respuesta: '🤖 Disculpa, tuve un problema entendiendo tu mensaje. ¿Puedes repetirlo con más detalle?',
       };
     }
   }
