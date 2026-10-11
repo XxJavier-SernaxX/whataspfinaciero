@@ -35,13 +35,24 @@ export async function GET(request: NextRequest) {
 // ------------------------------------------------------------------------------
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as WhatsAppWebhookPayload;
+    const body = await request.json();
+    console.log('📩 Evento de WhatsApp recibido:', JSON.stringify(body, null, 2));
 
-    // Meta siempre espera un 200 rápido para saber que recibimos el evento
-    // Procesamos el mensaje en segundo plano
     const entry = body.entry?.[0];
     const change = entry?.changes?.[0];
-    const messages = change?.value?.messages;
+    const value = change?.value;
+
+    // Si es una actualización de estado (enviado, entregado, fallido)
+    if (value?.statuses) {
+      const status = value.statuses[0];
+      console.log(`📊 Estado del mensaje ${status.id}: ${status.status}`);
+      if (status.errors) {
+        console.error('❌ Error de entrega de Meta:', JSON.stringify(status.errors, null, 2));
+      }
+      return NextResponse.json({ status: 'ok' }, { status: 200 });
+    }
+
+    const messages = value?.messages;
 
     // Si no hay mensajes en el evento (puede ser una notificación de estado), ignoramos
     if (!messages || messages.length === 0) {
