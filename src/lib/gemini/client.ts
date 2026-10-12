@@ -7,7 +7,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Inicializamos el cliente con la clave de la variable de entorno
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'placeholder-key');
 
 // Exportamos el modelo listo para usar en el servicio de IA
 // gemini-3.8-flash: el modelo más reciente y recomendado para nuevas cuentas
