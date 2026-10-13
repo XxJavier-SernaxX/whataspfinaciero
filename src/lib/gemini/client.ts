@@ -6,16 +6,17 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Inicializamos el cliente con la clave de la variable de entorno
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'placeholder-key');
+// Obtenemos el modelo dinámicamente en cada petición para asegurar
+// que lea la variable de entorno real en runtime dentro de Vercel.
+export function getGeminiModel() {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-// Exportamos el modelo listo para usar en el servicio de IA
-// gemini-3.8-flash: el modelo más reciente y recomendado para nuevas cuentas
-export const geminiModel = genAI.getGenerativeModel({
-  model: 'gemini-3.8-flash',
-  generationConfig: {
-    // Le decimos a Gemini que siempre responda en formato JSON
-    responseMimeType: 'application/json',
-    temperature: 0.1, // Más bajo = respuestas más precisas y consistentes
-  },
-});
+  return genAI.getGenerativeModel({
+    model: 'gemini-3.8-flash',
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.1,
+    },
+  });
+}

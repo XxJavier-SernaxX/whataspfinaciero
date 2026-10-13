@@ -4,7 +4,7 @@
 // Reemplaza a OpenAI con el modelo gratuito de Google.
 // Gemini 1.5 Flash entiende español perfectamente y devuelve JSON estructurado.
 
-import { geminiModel } from '@/lib/gemini/client';
+import { getGeminiModel } from '@/lib/gemini/client';
 import { AIInterpretation } from '@/types/ai';
 
 export class AIService {
@@ -68,20 +68,24 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
   static async interpretMessage(userText: string): Promise<AIInterpretation> {
     try {
       const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
+      const model = getGeminiModel();
 
-      const result = await geminiModel.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const responseText = result.response.text();
 
+      // Limpiamos posibles etiquetas ```json si Gemini las agrega
+      const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
       // Intentamos parsear el JSON que devolvió Gemini
-      const parsed = JSON.parse(responseText) as AIInterpretation;
+      const parsed = JSON.parse(cleanedText) as AIInterpretation;
       return parsed;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al interpretar mensaje con Gemini:', error);
-      // En caso de error, devolvemos una respuesta segura
+      // En caso de error, devolvemos una respuesta clara con el detalle
       return {
         action: 'otro',
-        mensaje_respuesta: '🤖 Disculpa, tuve un problema entendiendo tu mensaje. ¿Puedes repetirlo con más detalle?',
+        mensaje_respuesta: `🤖 Disculpa, tuve un problema procesando tu mensaje (${error?.message || error}).`,
       };
     }
   }
