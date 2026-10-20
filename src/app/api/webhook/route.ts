@@ -11,6 +11,9 @@ import { WhatsAppWebhookPayload } from '@/types/whatsapp';
 import { procesarMensaje } from '@/services/message-processor.service';
 import { sendWhatsAppMessage } from '@/lib/whatsapp/client';
 
+// Aumentamos el tiempo máximo de ejecución en Vercel a 60 segundos
+export const maxDuration = 60;
+
 // ------------------------------------------------------------------------------
 // GET: Verificación del Webhook con Meta
 // ------------------------------------------------------------------------------
