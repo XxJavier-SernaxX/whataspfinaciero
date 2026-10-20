@@ -66,27 +66,32 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
   // Interpretar un mensaje de texto del usuario
   // ----------------------------------------------------------------------------
   static async interpretMessage(userText: string): Promise<AIInterpretation> {
-    try {
-      const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
-      const model = getGeminiModel();
+    const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
+    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+    let lastError: any = null;
 
-      const result = await model.generateContent(prompt);
-      const responseText = result.response.text();
+    for (const modelName of candidateModels) {
+      try {
+        const model = getGeminiModel(modelName);
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
 
-      // Limpiamos posibles etiquetas ```json si Gemini las agrega
-      const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        // Limpiamos posibles etiquetas ```json si Gemini las agrega
+        const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-      // Intentamos parsear el JSON que devolvió Gemini
-      const parsed = JSON.parse(cleanedText) as AIInterpretation;
-      return parsed;
-
-    } catch (error: any) {
-      console.error('Error al interpretar mensaje con Gemini:', error);
-      // En caso de error, devolvemos una respuesta clara con el detalle
-      return {
-        action: 'otro',
-        mensaje_respuesta: `🤖 Disculpa, tuve un problema procesando tu mensaje (${error?.message || error}).`,
-      };
+        // Intentamos parsear el JSON que devolvió Gemini
+        const parsed = JSON.parse(cleanedText) as AIInterpretation;
+        return parsed;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`Aviso: fallo con el modelo ${modelName}, intentando siguiente...`, err?.message || err);
+      }
     }
+
+    console.error('Error final al interpretar mensaje con Gemini tras probar todos los modelos:', lastError);
+    return {
+      action: 'otro',
+      mensaje_respuesta: `🤖 Disculpa, tuve un problema procesando tu mensaje (${lastError?.message || lastError}).`,
+    };
   }
 }
