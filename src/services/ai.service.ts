@@ -77,8 +77,14 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
-        // Limpiamos posibles etiquetas ```json si Gemini las agrega
-        const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        // Extraemos el bloque JSON: buscamos el primer { y el último } para ser robustos
+        // ante texto extra que Gemini pueda agregar antes o después del JSON
+        const start = responseText.indexOf('{');
+        const end = responseText.lastIndexOf('}');
+        if (start === -1 || end === -1) {
+          throw new Error('No se encontró JSON válido en la respuesta de Gemini');
+        }
+        const cleanedText = responseText.slice(start, end + 1);
 
         // Intentamos parsear el JSON que devolvió Gemini
         const parsed = JSON.parse(cleanedText) as AIInterpretation;
