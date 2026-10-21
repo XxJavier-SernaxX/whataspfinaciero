@@ -67,8 +67,8 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
   // ----------------------------------------------------------------------------
   static async interpretMessage(userText: string): Promise<AIInterpretation> {
     const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
-    // gemini-flash-latest es el modelo activo confirmado. gemini-3.8-flash como alternativa.
-    const candidateModels = ['gemini-flash-latest', 'gemini-3.8-flash'];
+    // Modelos activos y ultrarrápidos con fallback automático
+    const candidateModels = ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
     let lastError: any = null;
 
     for (const modelName of candidateModels) {
@@ -80,16 +80,21 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
         // DEBUG: logueamos la respuesta cruda para diagnóstico en Vercel
         console.log(`[Gemini ${modelName}] Respuesta cruda:`, JSON.stringify(responseText));
 
-        // Extraemos el bloque JSON: buscamos el primer { y el último } para ser robustos
-        // ante texto extra que Gemini pueda agregar antes o después del JSON
-        const start = responseText.indexOf('{');
-        const end = responseText.lastIndexOf('}');
+        // Limpiamos bloques markdown ```json o ``` si vienen presentes
+        const cleanedRaw = responseText
+          .replace(/```json/gi, '')
+          .replace(/```/g, '')
+          .trim();
+
+        // Extraemos el bloque JSON: buscamos el primer { y el último }
+        const start = cleanedRaw.indexOf('{');
+        const end = cleanedRaw.lastIndexOf('}');
         if (start === -1 || end === -1) {
           throw new Error('No se encontró JSON válido en la respuesta de Gemini');
         }
-        const cleanedText = responseText.slice(start, end + 1);
+        const cleanedText = cleanedRaw.slice(start, end + 1);
 
-        // Intentamos parsear el JSON que devolvió Gemini
+        // Parseamos el JSON que devolvió Gemini
         const parsed = JSON.parse(cleanedText) as AIInterpretation;
         return parsed;
       } catch (err: any) {

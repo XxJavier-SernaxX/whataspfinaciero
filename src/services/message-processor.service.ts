@@ -48,7 +48,14 @@ export async function procesarMensaje(
     // CASO: El usuario quiere registrar un movimiento (gasto, ingreso, venta, costo)
     // --------------------------------------------------------------------------
     case 'registrar_movimiento': {
-      const mov = interpretacion.movimiento;
+      const raw = interpretacion as any;
+      const mov = interpretacion.movimiento || (raw.amount !== undefined ? {
+        account_type: raw.account_type || 'personal',
+        type: raw.type || 'gasto',
+        amount: Number(raw.amount),
+        category: raw.category || 'general',
+        description: raw.description || raw.category || 'movimiento',
+      } : undefined);
 
       if (!mov) {
         return '🤔 No entendí bien el movimiento. ¿Puedes repetirlo con más detalle?';

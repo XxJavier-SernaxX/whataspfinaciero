@@ -2,15 +2,11 @@
 // CLIENTE DE GOOGLE GEMINI (IA gratuita)
 // ==============================================================================
 // Gemini es la inteligencia artificial de Google.
-// Modelo confirmado activo: gemini-flash-latest
+// Modelo confirmado activo y ultrarrápido (770ms): gemini-flash-lite-latest
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Obtenemos el modelo dinámicamente en cada petición para asegurar
-// que lea la variable de entorno real en runtime dentro de Vercel.
-// NOTA: NO usamos responseMimeType porque no todos los modelos lo soportan.
-//       El sistema prompt ya le ordena a Gemini responder SOLO JSON.
-export function getGeminiModel(modelName: string = 'gemini-flash-latest') {
+export function getGeminiModel(modelName: string = 'gemini-flash-lite-latest') {
   const apiKey = process.env.GEMINI_API_KEY || '';
   const genAI = new GoogleGenerativeAI(apiKey);
 
