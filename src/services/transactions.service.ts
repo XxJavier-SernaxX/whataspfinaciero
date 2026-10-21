@@ -8,7 +8,7 @@
 // - Consultar ganancias reales del emprendimiento (Ventas - Costos).
 // - Modificar o eliminar el último movimiento.
 
-import { supabase } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/client';
 import { Transaction, AccountType, TransactionType } from '@/types/database';
 
 export class TransactionsService {
@@ -27,7 +27,7 @@ export class TransactionsService {
     try {
       const today = data.date || new Date().toISOString().split('T')[0];
 
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error } = await getSupabase()
         .from('transactions')
         .insert([
           {
@@ -62,6 +62,7 @@ export class TransactionsService {
     account_type?: AccountType
   ): Promise<{ personal: number; emprendimiento: number; total: number }> {
     try {
+      const supabase = getSupabase();
       let query = supabase
         .from('transactions')
         .select('account_type, type, amount')
@@ -110,6 +111,7 @@ export class TransactionsService {
     endDate?: string
   ): Promise<{ sales: number; costs: number; profit: number }> {
     try {
+      const supabase = getSupabase();
       let query = supabase
         .from('transactions')
         .select('type, amount')
@@ -155,7 +157,7 @@ export class TransactionsService {
     limit: number = 5
   ): Promise<Transaction[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('transactions')
         .select('*')
         .eq('user_phone', user_phone)
@@ -176,6 +178,7 @@ export class TransactionsService {
     user_phone: string
   ): Promise<{ success: boolean; deleted?: Transaction; error?: string }> {
     try {
+      const supabase = getSupabase();
       // Primero buscamos cuál es el último
       const { data: latest, error: findError } = await supabase
         .from('transactions')

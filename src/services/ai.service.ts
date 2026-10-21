@@ -67,7 +67,8 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
   // ----------------------------------------------------------------------------
   static async interpretMessage(userText: string): Promise<AIInterpretation> {
     const prompt = `${this.systemPrompt}\n\nMensaje del usuario: "${userText}"`;
-    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+    // gemini-flash-latest es el modelo activo confirmado. gemini-3.8-flash como alternativa.
+    const candidateModels = ['gemini-flash-latest', 'gemini-3.8-flash'];
     let lastError: any = null;
 
     for (const modelName of candidateModels) {

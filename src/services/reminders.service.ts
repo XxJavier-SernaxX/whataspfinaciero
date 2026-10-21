@@ -4,7 +4,7 @@
 // Este módulo gestiona los pagos programados fijos (ej: gimnasio día 23, luz día 10).
 // Permite guardar recordatorios y consultar cuáles vencen próximamente.
 
-import { supabase } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/client';
 import { Reminder, AccountType } from '@/types/database';
 
 export class RemindersService {
@@ -19,7 +19,7 @@ export class RemindersService {
     account_type: AccountType;
   }): Promise<{ success: boolean; data?: Reminder; error?: string }> {
     try {
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error } = await getSupabase()
         .from('reminders')
         .insert([
           {
@@ -49,7 +49,7 @@ export class RemindersService {
   // ----------------------------------------------------------------------------
   static async getActiveReminders(user_phone: string): Promise<Reminder[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from('reminders')
         .select('*')
         .eq('user_phone', user_phone)

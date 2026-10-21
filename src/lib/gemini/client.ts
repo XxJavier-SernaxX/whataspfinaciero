@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Obtenemos el modelo dinámicamente en cada petición para asegurar
 // que lea la variable de entorno real en runtime dentro de Vercel.
-export function getGeminiModel(modelName: string = 'gemini-3.8-flash') {
+export function getGeminiModel(modelName: string = 'gemini-flash-latest') {
   const apiKey = process.env.GEMINI_API_KEY || '';
   const genAI = new GoogleGenerativeAI(apiKey);
 
