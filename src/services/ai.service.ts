@@ -77,6 +77,9 @@ NOTA: Solo incluye los campos relevantes según la acción detectada.
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
 
+        // DEBUG: logueamos la respuesta cruda para diagnóstico en Vercel
+        console.log(`[Gemini ${modelName}] Respuesta cruda:`, JSON.stringify(responseText));
+
         // Extraemos el bloque JSON: buscamos el primer { y el último } para ser robustos
         // ante texto extra que Gemini pueda agregar antes o después del JSON
         const start = responseText.indexOf('{');
