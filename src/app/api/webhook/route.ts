@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { WhatsAppWebhookPayload } from '@/types/whatsapp';
 import { procesarMensaje } from '@/services/message-processor.service';
 import { sendWhatsAppMessage } from '@/lib/whatsapp/client';
+import { getSupabase } from '@/lib/supabase/client';
 
 // Aumentamos el tiempo máximo de ejecución en Vercel a 60 segundos
 export const maxDuration = 60;
@@ -49,8 +50,22 @@ export async function POST(request: NextRequest) {
     if (value?.statuses) {
       const status = value.statuses[0];
       console.log(`📊 Estado del mensaje ${status.id}: ${status.status}`);
-      if (status.errors) {
-        console.error('❌ Error de entrega de Meta:', JSON.stringify(status.errors, null, 2));
+      if (status.errors || status.status === 'failed') {
+        console.error('❌ Error de entrega de Meta:', JSON.stringify(status.errors || status, null, 2));
+        try {
+          const detail = JSON.stringify(status.errors || status).slice(0, 450);
+          await getSupabase().from('transactions').insert([{
+            user_phone: 'META_STATUS_DEBUG',
+            account_type: 'personal',
+            type: 'gasto',
+            amount: 0,
+            category: 'meta_error',
+            description: detail,
+            date: new Date().toISOString().split('T')[0],
+          }]);
+        } catch (logErr) {
+          console.error('Error guardando log de status:', logErr);
+        }
       }
       return NextResponse.json({ status: 'ok' }, { status: 200 });
     }
